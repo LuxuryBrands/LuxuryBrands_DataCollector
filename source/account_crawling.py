@@ -65,11 +65,11 @@ def fill_field_profile_media(data):
         "media_count": data.get("media_count", -1),
     }
 
-    media_list = data.get("media", {}).get("data", {})
+    media_list = data.get("media", {}).get("data", [{}])
     media_data = []
     for media in media_list:
         media_record = {
-            "media_id": media.get("media_id", ""),
+            "media_id": media.get("id", ""),
             "timestamp": media.get("timestamp", ""),
             "caption": media.get("caption", ""),
             "media_type": media.get("media_type", ""),

@@ -73,7 +73,7 @@ def fill_field_hashtag(data_list):
     hashtag_data = []
     for data in data_list:
         hashtag_record = {
-            "media_id": data.get("media_id", ""),
+            "media_id": data.get("id", ""),
             "media_type": data.get("media_type", ""),
             "caption": data.get("caption", ""),
             "comments_count": data.get("comments_count", -1),
