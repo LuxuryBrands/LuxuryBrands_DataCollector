@@ -1,18 +1,5 @@
 import json
 
-def get_list(file):
-    if not file:
-        print("No Params (file:str)")
-        return None
-
-    ret = []
-    try:
-        with open(file,"r") as f:
-            for aa in f:
-                ret.append(aa.strip())
-    except Exception as e:
-        print(f"error_from_utils.get_list() : {e}")
-    return ret
 
 def write_to_json(file, data):
     if not file or not data:

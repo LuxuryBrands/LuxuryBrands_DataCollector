@@ -1,14 +1,22 @@
+import boto3
 import requests
 import configparser
 from datetime import datetime
-from utils import *
+import json
 import re
+from botocore.exceptions import ClientError
+
 
 now = lambda: datetime.now().strftime("%y%m%d_%H%M_%S")
 now_ms = lambda: datetime.now().strftime("%y%m%d_%H%M_%S.%f")
 
 
 """
+[prod only] (aws)
+def get_secret() -> obj:
+def get_file_s3(bucket: str, object_key: str) -> obj:
+def upload_file_s3(bucket: str, file_name: str, file: str) -> bool:
+
 def get_hashtag_id(tag_name: str) -> str
 def get_hashtag_search(hashtag_id: str, limit: int, page_count: int) -> List[Dict]:
 def check_fields(topic: str, record: Dict) -> Dict:
@@ -16,14 +24,56 @@ def err_check(error_text: str) -> None:
 def fill_field_hashtag(data_list: List[Dict]) -> List[Dict]:
 """
 
-CONFIG_FILE = "../secret/configure.ini"
+
+s3 = boto3.client('s3')
+
+
+def get_secret():
+    secret_name = "DE-2-1-SECRET"
+    region_name = "us-west-2"
+
+    # Create a Secrets Manager client
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+
+    try:
+        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+        return json.loads(get_secret_value_response['SecretString'])
+    except ClientError as e:
+        raise e
+
+
+def get_file_s3(bucket, object_key):
+    return s3.get_object(Bucket=bucket, Key=object_key)["Body"].read().decode()
+
+
+def upload_file_s3(bucket, file_name, file):
+    encode_file = bytes(json.dumps(file).encode('UTF-8'))
+    try:
+        s3.put_object(Bucket=bucket, Key=file_name, Body=encode_file)
+        return True
+    except:
+        return False
+
+
+
+SECRET = get_secret()
+
+BUCKET = SECRET["bucket"]
+CONFIG_FILE = SECRET["config_file"]
 
 config = configparser.ConfigParser()
-config.read(CONFIG_FILE)
+config.read_string(get_file_s3(bucket=BUCKET, object_key=CONFIG_FILE))
 
-WRITE_LOCATION_HASHTAGS = config["dev"]["hashtags_location"]
+WRITE_LOCATION_HASHTAGS = config["aws"]["hashtags_location"]
 
 ERR_COUNT = {}
+
+
+
 
 
 
@@ -37,9 +87,9 @@ def get_hashtag_id(tag_name):
     end_point += "/ig_hashtag_search"
 
     params = {
-        "user_id": config['SECRET']['ig_user_id'],
+        "user_id": SECRET["ig_user_id"],
         "q": tag_name,
-        "access_token": config["SECRET"]["access_token"],
+        "access_token": SECRET["access_token"],
     }
 
     res = requests.get(end_point, params=params)
@@ -62,11 +112,11 @@ def get_hashtag_search(hashtag_id, limit=25, page_count=1):
     hashtag_fields = ",".join([v.split()[0] for v in config["hashtag_media"].values()])
 
     params = {
-        "user_id": config["SECRET"]["ig_user_id"],
+        "user_id": SECRET["ig_user_id"],
         "fields": hashtag_fields,
         # not used fields
         # children, permalink, media_url
-        "access_token": config["SECRET"]["access_token"],
+        "access_token": SECRET["access_token"],
         "limit": limit,
     }
 
@@ -141,8 +191,7 @@ def fill_field_hashtag(data_list):
     return hashtag_data
 
 
-
-if __name__ == "__main__":
+def lambda_handler(event, context):
     hashtags = config["topic"]["hashtags"].split()
 
     line = "{time:14}\t{name:14}\t[{media}] {error}\n"
@@ -179,9 +228,12 @@ if __name__ == "__main__":
         hashtag_results[hashtag] = fill_field_hashtag(data)
         print()
 
-    write_to_json(WRITE_LOCATION_HASHTAGS.format(start_time=start_time), hashtag_results)
-
-    # saving_log(f"../logs/hashtag_media_{now()}.txt", log)
+    f = upload_file_s3(bucket=BUCKET, file_name=WRITE_LOCATION_HASHTAGS.format(start_time=start_time), file=hashtag_results)
+    if f:
+        print(f"WRITE TO [{WRITE_LOCATION_HASHTAGS.format(start_time=start_time)}] COMPLETE.")
+    else:
+        print("FAIL UPLOAD.")
+    # upload_file_s3(bucket=BUCKET, file_name=f"logs/hashtag_media_{start_time}.txt", file=log)
 
     err_log = f"{' ERROR ':=^50}\n"
     for k,v in ERR_COUNT.items():
@@ -189,3 +241,21 @@ if __name__ == "__main__":
     err_log += "="*50
 
     print(err_log)
+
+    if f:
+        return {
+            'statusCode': 200,
+            'start_time': start_time,
+            'end_time': now(),
+            'body': json.dumps('end processing\nupload success'),
+            'error_log': json.dumps(err_log),
+            'target_file': json.dumps(BUCKET+"/"+WRITE_LOCATION_HASHTAGS.format(start_time=start_time))
+        }
+    else:
+        return {
+            'statusCode': 400,
+            'start_time': start_time,
+            'end_time': now(),
+            'body': json.dumps('end processing\nupload fail'),
+            'error_log': json.dumps(err_log)
+        }

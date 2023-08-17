@@ -7,6 +7,15 @@ now = lambda :datetime.now().strftime("%y%m%d_%H%M_%S")
 
 CONFIG_FILE = "../secret/configure.ini"
 
+"""
+access_token 기반으로
+- fb_user_id, fb_page_id, ig_user_id
+- [token_debug]
+내용 갱신하는 코드
+
+사용 X
+"""
+
 def save_config(config):
     with open(CONFIG_FILE, "w") as f:
         config.write(f)

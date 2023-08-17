@@ -1,0 +1,80 @@
+# 1. mkdir package
+# 2. pip install --target ./package -r requirements.txt
+# 3. zip -r ./my_deployment_package.zip ./package
+# 4. yes | cp -r ./source/target_source.py ./lambda_function.py
+# 5. zip ./my_deployment_package.zip ./lambda_function.py
+# 6. upload to S3 ./my_deployment_package.zip
+# 7. lambda request
+## https://docs.aws.amazon.com/ko_kr/lambda/latest/dg/API_UpdateFunctionCode.html
+
+
+
+name: Build and Deploy to Amazon Lambda
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+env:
+  AWS_REGION: us-west-2
+  S3_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+  S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  BUCKET: ${{ secrets.BUCKET }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: create the deployment package
+    runs-on: ubuntu-latest
+# 1. mkdir package
+# 2. pip install --target ./package -r requirements.txt
+# 3. zip -r ./my_deployment_package.zip ./package
+# 4. yes | cp -r ./source/target_source.py ./lambda_function.py
+# 5. zip ./my_deployment_package.zip ./lambda_function.py
+# 6. upload to S3 ./my_deployment_package.zip
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.10"
+      - name: Install packages
+        run: |
+          python -m pip install --upgrade pip
+          mkdir package
+          pip install --target package -r requirements.txt
+      - name: create zip
+        run: |
+          zip -r lambda_hashtags.zip package
+          yes | cp -r source/target_source.py lambda_function.py
+          zip lambda_hashtags.zip lambda_function.py
+  upload:
+    name: upload the .zip to s3
+    runs-on: ubuntu-latest
+#    environment: production
+
+    steps:
+      - uses: actions/checkout@v3
+        name: upload to s3
+        run: |
+
+
+#  deploy:
+#    name: Deploy
+#    runs-on: ubuntu-latest
+#    environment: production
+#
+#    steps:
+#    - name: Checkout
+#      uses: actions/checkout@v3
+#
+#    - name: Configure AWS credentials
+#      uses: aws-actions/configure-aws-credentials@v1
+#      with:
+#        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#        aws-region: ${{ env.AWS_REGION }}

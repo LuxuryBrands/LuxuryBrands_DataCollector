@@ -1,14 +1,22 @@
+import boto3
 import requests
 import configparser
 from datetime import datetime
-from utils import *
+import json
 import re
+from botocore.exceptions import ClientError
+
 
 now = lambda: datetime.now().strftime("%y%m%d_%H%M_%S")
 now_ms = lambda: datetime.now().strftime("%y%m%d_%H%M_%S.%f")
 
 
 """
+[prod only] (aws)
+def get_secret() -> obj:
+def get_file_s3(bucket: str, object_key: str) -> obj:
+def upload_file_s3(bucket: str, file_name: str, file: str) -> bool:
+
 def get_account_media(user_name: str, page_count: int) -> Tuple[Dict, Dict]:
 def check_fields(topic: str, record: Dict) -> Dict:
 def err_check(error_text: str) -> None:
@@ -16,26 +24,67 @@ def fill_field_profile_media(data: Tuple[Dict, List]) -> Tuple[Dict, List]:
 """
 
 
-CONFIG_FILE = "../secret/configure.ini"
+s3 = boto3.client('s3')
+
+
+def get_secret():
+    secret_name = "DE-2-1-SECRET"
+    region_name = "us-west-2"
+
+    # Create a Secrets Manager client
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+
+    try:
+        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+        return json.loads(get_secret_value_response['SecretString'])
+    except ClientError as e:
+        raise e
+
+
+def get_file_s3(bucket, object_key):
+    return s3.get_object(Bucket=bucket, Key=object_key)["Body"].read().decode()
+
+
+def upload_file_s3(bucket, file_name, file):
+    encode_file = bytes(json.dumps(file).encode('UTF-8'))
+    try:
+        s3.put_object(Bucket=bucket, Key=file_name, Body=encode_file)
+        return True
+    except:
+        return False
+
+
+
+SECRET = get_secret()
+
+BUCKET = SECRET["bucket"]
+CONFIG_FILE = SECRET["config_file"]
 
 config = configparser.ConfigParser()
-config.read(CONFIG_FILE)
+config.read_string(get_file_s3(bucket=BUCKET, object_key=CONFIG_FILE))
 
-WRITE_LOCATION_PROFILES = config["dev"]["profiles_location"]
-WRITE_LOCATION_MEDIA = config["dev"]["media_location"]
+WRITE_LOCATION_PROFILES = config["aws"]["profiles_location"]
+WRITE_LOCATION_MEDIA = config["aws"]["media_location"]
 
 ERR_COUNT = {}
 
 
 
-def get_account_media(user_name="1", page_count=1):
+
+
+
+def get_account_media(user_name="", page_count=1):
     if not user_name:
-        print("pls enter user_name")
+        print("user_name is empty!")
         return None
 
     end_point = config["API"]["end_point"]
     end_point = end_point.format(VERSION=config["API"]["version"])
-    end_point += f"/{config['SECRET']['ig_user_id']}"
+    end_point += f"/{SECRET['ig_user_id']}"
 
     profile_fields = ",".join([v.split()[0] for v in config["luxury_profile"].values()])
     media_fields = ",".join([v.split()[0] for v in config["luxury_media"].values()])
@@ -49,7 +98,7 @@ def get_account_media(user_name="1", page_count=1):
                 # user - ig_id, follows_count, biography
                 # media - owner
             ),
-        "access_token": config["SECRET"]["access_token"],
+        "access_token": SECRET["access_token"],
     }
 
     # print(f"request url : {end_point}")
@@ -72,6 +121,7 @@ def get_account_media(user_name="1", page_count=1):
         # (#4) Application request limit reached
         raise AssertionError(res.json()["error"]["message"])
     raise AssertionError(res.json()["error"]["message"])
+
 
 
 def check_fields(topic, record):
@@ -131,8 +181,7 @@ def fill_field_profile_media(data):
     return profile_data, media_data
 
 
-
-if __name__ == "__main__":
+def lambda_handler(event, context):
     accounts = config["topic"]["accounts"].split()
 
     line = "{time:14}\t{name:14}\t[{profile}|{media}] {error}\n"
@@ -168,15 +217,24 @@ if __name__ == "__main__":
             media=media_log,
             error=error
         )
+
         profile, media = fill_field_profile_media(data)
         profile_results[account] = profile
         media_results[account] = media
         print()
 
-    write_to_json(WRITE_LOCATION_PROFILES.format(start_time=start_time), profile_results)
-    write_to_json(WRITE_LOCATION_MEDIA.format(start_time=start_time), media_results)
+    f1 = upload_file_s3(bucket=BUCKET, file_name=WRITE_LOCATION_PROFILES.format(start_time=start_time), file=profile_results)
+    if f1:
+        print(f"WRITE TO [{WRITE_LOCATION_PROFILES.format(start_time=start_time)}] COMPLETE.")
+    else:
+        print("FAIL UPLOAD.")
+    f2 = upload_file_s3(bucket=BUCKET, file_name=WRITE_LOCATION_MEDIA.format(start_time=start_time), file=media_results)
+    if f2:
+        print(f"WRITE TO [{WRITE_LOCATION_MEDIA.format(start_time=start_time)}] COMPLETE.")
+    else:
+        print("FAIL UPLOAD.")
 
-    # saving_log(f"../logs/account_{now()}.txt", log)
+    # upload_file_s3(bucket=BUCKET, file_name=f"logs/luxury_accounts_{start_time}.json", file=log)
 
     err_log = f"{' ERROR ':=^50}\n"
     for k,v in ERR_COUNT.items():
@@ -184,3 +242,24 @@ if __name__ == "__main__":
     err_log += "="*50
 
     print(err_log)
+
+    if f1 and f2:
+        return {
+            'statusCode': 200,
+            'start_time': start_time,
+            'end_time': now(),
+            'body': json.dumps('end processing\nupload success'),
+            'error_log': json.dumps(err_log),
+            'target_file': json.dumps(
+                BUCKET + "/" + WRITE_LOCATION_PROFILES.format(start_time=start_time) \
+                + "\n" \
+                + BUCKET + "/" +WRITE_LOCATION_MEDIA .format(start_time=start_time))
+        }
+    else:
+        return {
+            'statusCode': 400,
+            'start_time': start_time,
+            'end_time': now(),
+            'body': json.dumps('end processing\nupload fail'),
+            'error_log': json.dumps(err_log)
+        }

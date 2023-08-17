@@ -6,8 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
-# secret
+# custom
 secret/
+data/
+logs/
 
 # Distribution / packaging
 .Python
