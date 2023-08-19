@@ -32,6 +32,8 @@ elif ENV == "dev":
 
 WRITE_LOCATION_PROFILES = config[ENV]["profiles_location"]
 WRITE_LOCATION_MEDIA = config[ENV]["media_location"]
+YMD = config["common"]["ymd"]
+DATETIME = config["common"]["datetime"]
 
 ERR_COUNT = {}
 
@@ -142,7 +144,7 @@ def lambda_handler(event, context):
                                 WRITE_LOCATION_MEDIA, media_results
                             ]]:
         if data:
-            file_name = file_name.format(ymd=start_time.strftime("%y%m%d"), start_time=start_time.strftime("%y%m%d_%H%M_%S"))
+            file_name = file_name.format(ymd=start_time.strftime(YMD), date_time=start_time.strftime(DATETIME))
             f = utils.save_file(bucket=BUCKET, file_name=file_name, data=data)
             target_files += f"{BUCKET}/{file_name}\n"
         else:

@@ -31,7 +31,8 @@ elif ENV == "dev":
     config.read(CONFIG_FILE)
 
 WRITE_LOCATION_HASHTAGS = config[ENV]["hashtags_location"]
-
+YMD = config["common"]["ymd"]
+DATETIME = config["common"]["datetime"]
 
 ERR_COUNT = {}
 
@@ -143,7 +144,7 @@ def lambda_handler(event, context):
                                 WRITE_LOCATION_HASHTAGS, hashtag_results
                             ]]:
         if data:
-            file_name = file_name.format(ymd=start_time.strftime("%y%m%d"), start_time=start_time.strftime("%y%m%d_%H%M_%S"))
+            file_name = file_name.format(ymd=start_time.strftime(YMD), date_time=start_time.strftime(DATETIME))
             f = utils.save_file(bucket=BUCKET, file_name=file_name, data=data)
             target_files += f"{BUCKET}/{file_name}\n"
         else:
