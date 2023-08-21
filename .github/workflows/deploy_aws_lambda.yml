@@ -56,6 +56,7 @@ jobs:
           zip lambda_hashtags.zip lambda_function.py
   upload:
     name: upload the .zip to s3
+    needs: build
     runs-on: ubuntu-latest
 #    environment: production
 
