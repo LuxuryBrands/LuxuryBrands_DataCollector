@@ -98,9 +98,6 @@ def fill_field_hashtag(hashtag, data_list, config, err_count):
 
 
 def lambda_handler(event, context):
-    # CLEARING LAMBDA TMP FOLDER
-    utils.clearing_lambda_tmp()
-
     # GET SECRET/CONFIG
     secret = utils.get_secret(ENV)
 

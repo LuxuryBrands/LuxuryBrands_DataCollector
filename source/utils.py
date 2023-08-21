@@ -27,6 +27,7 @@ def check_fields(topic: str, record: Dict) -> Dict:
 """
 
 def clearing_lambda_tmp() -> None:
+    # [Errno 30] Read-only file system: '/tmp'
     import os
     tmp_file_path = "/tmp"
     if os.path.exists(tmp_file_path):

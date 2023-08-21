@@ -88,9 +88,6 @@ def fill_field_profile_media(account, data, config, err_count):
 
 
 def lambda_handler(event, context):
-    # CLEARING LAMBDA TMP FOLDER
-    utils.clearing_lambda_tmp()
-
     # GET SECRET/CONFIG
     secret = utils.get_secret(ENV)
     config = utils.get_config(ENV, secret)
