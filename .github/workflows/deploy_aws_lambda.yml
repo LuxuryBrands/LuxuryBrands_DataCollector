@@ -17,11 +17,12 @@ on:
   pull_request:
     branches: [ "main", "develop" ]
 
-env:
-  AWS_REGION: us-west-2
-  S3_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
-  S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  BUCKET: ${{ secrets.BUCKET }}
+# mov to steps[*].with
+#env:
+#  AWS_REGION: us-west-2
+#  S3_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+#  S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#  BUCKET: ${{ secrets.BUCKET }}
 
 permissions:
   contents: read
@@ -50,7 +51,8 @@ jobs:
       - name: create zip
         run: |
           zip -r lambda_hashtags.zip package
-          yes | cp -r source/target_source.py lambda_function.py
+          zip lambda_hashtags.zip source/utils.py
+          yes | cp -r source/lambda_hashtags.py lambda_function.py
           zip lambda_hashtags.zip lambda_function.py
   upload:
     name: upload the .zip to s3
@@ -59,9 +61,17 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-        name: upload to s3
-        run: |
+      - name: crediential aws
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: us-west-2
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
+      - name: upload s3
+        run: |
+           aws s3 cp lambda_hashtags.zip s3://de-2-1-s3/test/file.zip
+          
 
 #  deploy:
 #    name: Deploy
