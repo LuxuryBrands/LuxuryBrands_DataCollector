@@ -87,8 +87,8 @@ jobs:
           aws lambda update-function-code \
             --function-name testtest \
             --s3-bucket $BUCKET \
-            --se-key $HASHTAGS_ZIP
+            --s3-key $HASHTAGS_ZIP
 #          aws lambda update-function-code \
 #            --function-name  \
 #            --s3-bucket $BUCKET \
-#            --se-key $HASHTAGS_ZIP
+#            --s3-key $HASHTAGS_ZIP
