@@ -1,4 +1,7 @@
-## https://docs.aws.amazon.com/ko_kr/lambda/latest/dg/API_UpdateFunctionCode.html
+# code zipping
+# https://docs.aws.amazon.com/ko_kr/lambda/latest/dg/API_UpdateFunctionCode.html
+# aws cli
+# https://github.com/aws-actions/configure-aws-credentials
 
 
 
@@ -15,8 +18,9 @@ permissions:
   contents: read
 
 env:
-  ACCOUNTS_ZIP: s3://de-2-1-s3/test/lambda_accounts.zip
-  HASHTAGS_ZIP: s3://de-2-1-s3/test/lambda_hashtags.zip
+  BUCKET: de-2-1-s3
+  ACCOUNTS_ZIP: lambda-deployment-package/lambda_accounts.zip
+  HASHTAGS_ZIP: lambda-deployment-package/lambda_hashtags.zip
 
 jobs:
   build:
@@ -56,7 +60,7 @@ jobs:
           cd ..
 
       - name: crediential aws
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-region: us-west-2
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
@@ -64,8 +68,27 @@ jobs:
 
       - name: upload s3
         run: |
-           aws s3 cp lambda_accounts.zip $ACCOUNTS_ZIP
-           aws s3 cp lambda_hashtags.zip $HASHTAGS_ZIP
-#  Deploy:
-#    runs-on: ubuntu-latest
-#
+           aws s3 cp lambda_accounts.zip s3://$BUCKET/$ACCOUNTS_ZIP
+           aws s3 cp lambda_hashtags.zip s3://$BUCKET/$HASHTAGS_ZIP
+
+  Deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: crediential aws
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: us-west-2
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: update function code lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name testtest \
+            --s3-bucket $BUCKET \
+            --se-key $HASHTAGS_ZIP
+#          aws lambda update-function-code \
+#            --function-name  \
+#            --s3-bucket $BUCKET \
+#            --se-key $HASHTAGS_ZIP
