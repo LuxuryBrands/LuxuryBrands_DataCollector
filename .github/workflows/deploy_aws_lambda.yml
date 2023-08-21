@@ -1,0 +1,95 @@
+# code zipping
+# https://docs.aws.amazon.com/ko_kr/lambda/latest/dg/API_UpdateFunctionCode.html
+# aws cli
+# https://github.com/aws-actions/configure-aws-credentials
+
+name: Build and Deploy to Amazon Lambda
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+
+permissions:
+  contents: read
+
+env:
+  REGION: us-west-2
+  BUCKET: de-2-1-s3
+  ACCOUNTS_ZIP: lambda-deployment-package/lambda_accounts.zip
+  HASHTAGS_ZIP: lambda-deployment-package/lambda_hashtags.zip
+  ACCOUNTS_FUNCTION_NAME: DE-2-1-extract-accounts
+  HASHTAGS_FUNCTION_NAME: DE-2-1-extract-hashtags
+
+jobs:
+  build:
+    # 1. mkdir package
+    # 2. pip install --target ./package -r requirements.txt
+    # 3. zip -r ./my_deployment_package.zip ./package
+    # 4. yes | cp -r ./source/target_source.py ./lambda_function.py
+    # 5. zip ./my_deployment_package.zip ./lambda_function.py
+    # 6. upload to S3 ./my_deployment_package.zip    name: create the deployment package
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.10"
+      - name: Install packages
+        run: |
+          python -m pip install --upgrade pip
+          mkdir package
+          pip install --target package -r requirements.txt
+
+      - name: create zip
+        run: |
+          cd package
+          zip -r ../lambda_accounts.zip .
+          cd ..
+          zip lambda_accounts.zip configure.ini
+          cd source
+          zip ../lambda_accounts.zip utils.py
+          yes | cp -r ../lambda_accounts.zip ../lambda_hashtags.zip
+          yes | cp -r lambda_accounts.py lambda_function.py
+          zip ../lambda_accounts.zip lambda_function.py
+          yes | cp -r lambda_hashtags.py lambda_function.py
+          zip ../lambda_hashtags.zip lambda_function.py
+          cd ..
+
+      - name: crediential aws
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: ${{ env.REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: upload s3
+        run: |
+           aws s3 cp lambda_accounts.zip s3://$BUCKET/$ACCOUNTS_ZIP
+           aws s3 cp lambda_hashtags.zip s3://$BUCKET/$HASHTAGS_ZIP
+
+  Deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: crediential aws
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: ${{ env.REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: update function code lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name $ACCOUNTS_FUNCTION_NAME \
+            --s3-bucket $BUCKET \
+            --s3-key $ACCOUNTS_ZIP
+          aws lambda update-function-code \
+            --function-name $HASHTAGS_FUNCTION_NAME \
+            --s3-bucket $BUCKET \
+            --s3-key $HASHTAGS_ZIP
