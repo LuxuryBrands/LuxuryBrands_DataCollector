@@ -11,6 +11,7 @@ LOCAL_CONFIG = "../secret/dev_secret.ini"
 
 """
 [prod only] (aws)
+def clearing_lambda_tmp() -> None:
 def get_secret(ENV: str) -> obj:
 def get_config(ENV: str, SECRET: obj) -> obj:
 def get_file_s3(bucket: str, object_key: str) -> obj:
@@ -24,6 +25,14 @@ def saving_log(file: str, log: str) -> None:
 
 def check_fields(topic: str, record: Dict) -> Dict:
 """
+
+def clearing_lambda_tmp() -> None:
+    import os
+    tmp_file_path = "/tmp"
+    if os.path.exists(tmp_file_path):
+        os.remove(tmp_file_path)
+        return True
+    return False
 
 def get_secret(ENV):
     if ENV == "aws":
