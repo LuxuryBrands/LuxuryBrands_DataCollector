@@ -44,7 +44,9 @@ jobs:
         run: |
           cd package
           zip -r ../lambda_accounts.zip .
-          cd ../source
+          cd ..
+          zip lambda_accounts.zip configure.ini
+          cd source
           zip ../lambda_accounts.zip utils.py
           yes | cp -r ../lambda_accounts.zip ../lambda_hashtags.zip
           yes | cp -r lambda_accounts.py lambda_function.py

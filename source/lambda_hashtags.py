@@ -100,7 +100,6 @@ def fill_field_hashtag(hashtag, data_list, config, err_count):
 def lambda_handler(event, context):
     # GET SECRET/CONFIG
     secret = utils.get_secret(ENV)
-
     config = utils.get_config(ENV, secret)
 
     if not config or not secret:

@@ -5,15 +5,18 @@ import configparser
 from datetime import datetime
 now = lambda :datetime.now().strftime("%y%m%d_%H%M_%S")
 
-CONFIG_FILE = "../secret/configure.ini"
+CONFIG_FILE = "../configure.ini"
+
+"""
+사용 X 파일
+"""
+
 
 """
 access_token 기반으로
 - fb_user_id, fb_page_id, ig_user_id
 - [token_debug]
 내용 갱신하는 코드
-
-사용 X
 """
 
 def save_config(config):

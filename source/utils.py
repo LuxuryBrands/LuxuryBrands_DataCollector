@@ -7,7 +7,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 
-LOCAL_CONFIG = "../secret/dev_secret.ini"
+LOCAL_SECRET = "../secret/dev_secret.ini"
 
 """
 [prod only] (aws)
@@ -54,7 +54,7 @@ def get_secret(ENV):
             raise e
     elif ENV == "dev":
         secret = configparser.ConfigParser()
-        secret.read(LOCAL_CONFIG)
+        secret.read(LOCAL_SECRET)
         return secret["SECRET"]
 
 def get_config(ENV, SECRET):
@@ -63,7 +63,9 @@ def get_config(ENV, SECRET):
 
     config = configparser.ConfigParser()
     if ENV == "aws":
-        config.read_string(get_file_s3(bucket=BUCKET, object_key=CONFIG_FILE))
+        # config.read_string(get_file_s3(bucket=BUCKET, object_key=CONFIG_FILE))
+        # lambda cache issue -> s3 XXXXX
+        config.read(CONFIG_FILE)
     elif ENV == "dev":
         config.read(CONFIG_FILE)
 
