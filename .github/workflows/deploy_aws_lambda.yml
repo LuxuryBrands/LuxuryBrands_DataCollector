@@ -41,12 +41,13 @@ jobs:
           cd package
           zip -r ../lambda_hashtags.zip .
           cd ../source
-          zip lambda_accounts.zip utils.py
-          yes | cp -r lambda_accounts.zip lambda_hashtags.zip
+          zip ../lambda_accounts.zip utils.py
+          yes | cp -r ../lambda_accounts.zip ../lambda_hashtags.zip
           yes | cp -r lambda_accounts.py lambda_function.py
-          zip lambda_accounts.zip lambda_function.py
+          zip ../lambda_accounts.zip lambda_function.py
           yes | cp -r lambda_hashtags.py lambda_function.py
-          zip lambda_hashtags.zip lambda_function.py
+          zip ../lambda_hashtags.zip lambda_function.py
+          cd ..
 
       - name: crediential aws
         uses: aws-actions/configure-aws-credentials@v1
