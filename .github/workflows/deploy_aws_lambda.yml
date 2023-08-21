@@ -14,6 +14,10 @@ on:
 permissions:
   contents: read
 
+env:
+  ACCOUNTS_ZIP: s3://de-2-1-s3/test/lambda_accounts.zip
+  HASHTAGS_ZIP: s3://de-2-1-s3/test/lambda_hashtags.zip
+
 jobs:
   build:
     # 1. mkdir package
@@ -58,5 +62,8 @@ jobs:
 
       - name: upload s3
         run: |
-           aws s3 cp lambda_accounts.zip s3://de-2-1-s3/test/lambda_accounts.zip
-           aws s3 cp lambda_hashtags.zip s3://de-2-1-s3/test/lambda_hashtags.zip
+           aws s3 cp lambda_accounts.zip $ACCOUNTS_ZIP
+           aws s3 cp lambda_hashtags.zip $HASHTAGS_ZIP
+#  Deploy:
+#    runs-on: ubuntu-latest
+#

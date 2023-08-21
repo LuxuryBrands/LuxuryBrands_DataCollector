@@ -1,50 +1,37 @@
 import requests
-import configparser
 from datetime import datetime
 import json
 import utils
 
 
 """
-def get_hashtag_id(tag_name: str) -> str
-def get_hashtag_search(hashtag_id: str, limit: int, page_count: int) -> List[Dict]:
-def fill_field_hashtag(data_list: List[Dict]) -> List[Dict]:
+def get_hashtag_id(
+    tag_name: str,
+    config: obj,
+    SECRET: obj
+) -> str
+
+def get_hashtag_search(
+    hashtag_id: str,
+    config: obj,
+    SECRET: obj,
+    limit: int,
+    page_count: int
+) -> List[Dict]:
+
+def fill_field_hashtag(
+    data_list: List[Dict],
+    config: obj,
+    err_count: Dict
+) -> List[Dict]:
 """
 
 ENV = "aws"
 
 
-if ENV == "aws":
-    SECRET = utils.get_secret()
-elif ENV == "dev":
-    secret = configparser.ConfigParser()
-    secret.read("../secret/dev_secret.ini")
-    SECRET = secret["SECRET"]
-
-BUCKET = SECRET["bucket"]
-CONFIG_FILE = SECRET["config_file"]
-
-config = configparser.ConfigParser()
-if ENV == "aws":
-    config.read_string(utils.get_file_s3(bucket=BUCKET, object_key=CONFIG_FILE))
-elif ENV == "dev":
-    config.read(CONFIG_FILE)
-
-WRITE_LOCATION_HASHTAGS = config[ENV]["hashtags_location"]
-YMD = config["common"]["ymd"]
-DATETIME = config["common"]["datetime"]
-
-ERR_COUNT = {}
-
-
-
-
-
-
-def get_hashtag_id(tag_name):
+def get_hashtag_id(tag_name, config, SECRET):
     if not tag_name:
-        print("tag_name is empty!")
-        return None
+        raise AssertionError("tag_name is empty!")
 
     end_point = config["API"]["end_point"]
     end_point = end_point.format(VERSION=config["API"]["version"])
@@ -66,8 +53,7 @@ def get_hashtag_id(tag_name):
     raise AssertionError(res.json()["error"]["message"])
 
 
-def get_hashtag_search(hashtag_id, limit=25, page_count=1):
-
+def get_hashtag_search(hashtag_id, config, SECRET, limit=25, page_count=1):
     end_point = config["API"]["end_point"]
     end_point = end_point.format(VERSION=config["API"]["version"])
     # recent_media | top_media
@@ -100,18 +86,38 @@ def get_hashtag_search(hashtag_id, limit=25, page_count=1):
     raise AssertionError(res.json()["error"]["message"])
 
 
-def fill_field_hashtag(hashtag, data_list):
+def fill_field_hashtag(hashtag, data_list, config, err_count):
     hashtag_data = []
 
     for data in data_list:
         data["user_id"] = config["add_user_id"][hashtag]
-        hashtag_record = utils.check_fields("hashtag_media", config["hashtag_media"], data, ERR_COUNT)
+        hashtag_record = utils.check_fields("hashtag_media", config["hashtag_media"], data, err_count)
         hashtag_data.append(hashtag_record)
 
     return hashtag_data
 
 
 def lambda_handler(event, context):
+    # GET SECRET/CONFIG
+    secret = utils.get_secret(ENV)
+
+    config = utils.get_config(ENV, secret)
+
+    if not config or not secret:
+        raise AssertionError(
+            ("NO PARAMS CONFIG " if not config else "") + \
+            ("NO PARAMS SECRET " if not secret else "")
+        )
+
+    # SET VARIABLES
+    BUCKET = secret["bucket"]
+    WRITE_LOCATION_HASHTAGS = config[ENV]["hashtags_location"]
+    YMD = config["common"]["ymd"]
+    DATETIME = config["common"]["datetime"]
+
+    ERR_COUNT = {}
+
+    # RUN
     hashtags = config["topic"]["hashtags"].split()
 
     line = "{time:14}\t{name:14}\t[{media}] {error}\n"
@@ -122,29 +128,32 @@ def lambda_handler(event, context):
 
     start_time = datetime.now()
     print(f"start: {datetime.now().strftime('%y%m%d_%H%M_%S.%f')}\n")
+    # START REQUESTS
     for i, hashtag in enumerate(hashtags):
         print(f"API request processing.. TAG[{hashtag}]({i+1}/{len(hashtags)}) : ", end="")
         try:
-            hashtag_id = get_hashtag_id(hashtag)
+            hashtag_id = get_hashtag_id(hashtag, config=config, SECRET=secret)
             print(hashtag_id)
-            data = get_hashtag_search(hashtag_id)
+            data = get_hashtag_search(hashtag_id, config=config, SECRET=secret)
             if data:
                 # hashtag_data exist
                 pass
         except Exception as e:
             print(e, "\n")
         else:
-            hashtag_data = fill_field_hashtag(hashtag, data)
+            hashtag_data = fill_field_hashtag(hashtag, data, config=config, err_count=ERR_COUNT)
             hashtag_results.extend(hashtag_data)
             print()
+    # END REQUESTS
 
+    # FILE SAVING
     file_flag = True
     target_files = ""
     for file_name, data in [[
                                 WRITE_LOCATION_HASHTAGS, hashtag_results
                             ]]:
         if data:
-            file_name = file_name.format(ymd=start_time.strftime(YMD), date_time=start_time.strftime(DATETIME))
+            file_name = file_name.format(ymd=start_time.strftime(YMD), datetime=start_time.strftime(DATETIME))
             f = utils.save_file(bucket=BUCKET, file_name=file_name, data=data)
             target_files += f"{BUCKET}/{file_name}\n"
         else:
@@ -156,6 +165,7 @@ def lambda_handler(event, context):
             print("FAIL UPLOAD.")
     # write_log somewhere
 
+    # PRINT ERROR LOG
     err_log = f"{' ERROR ':=^70}\n"
     for k,v in ERR_COUNT.items():
         err_log += f"{k:<45}{v:>5}\n"
@@ -163,6 +173,7 @@ def lambda_handler(event, context):
 
     print(err_log)
 
+    # END FUNCTION
     if file_flag:
         return {
             'statusCode': 200,

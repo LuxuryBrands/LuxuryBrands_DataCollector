@@ -1,14 +1,18 @@
 import json
 import re
+import configparser
 
 # aws
 import boto3
 from botocore.exceptions import ClientError
 
 
+LOCAL_CONFIG = "../secret/dev_secret.ini"
+
 """
 [prod only] (aws)
-def get_secret() -> obj:
+def get_secret(ENV: str) -> obj:
+def get_config(ENV: str, SECRET: obj) -> obj:
 def get_file_s3(bucket: str, object_key: str) -> obj:
 def upload_file_s3(bucket: str, file_name: str, file: Dict) -> bool:
 
@@ -19,25 +23,41 @@ def read_to_json(file: str) -> Dict:
 def saving_log(file: str, log: str) -> None:
 
 def check_fields(topic: str, record: Dict) -> Dict:
-
 """
 
-def get_secret():
-    secret_name = "DE-2-1-SECRET"
-    region_name = "us-west-2"
+def get_secret(ENV):
+    if ENV == "aws":
+        secret_name = "DE-2-1-SECRET"
+        region_name = "us-west-2"
 
-    # Create a Secrets Manager client
-    session = boto3.session.Session()
-    client = session.client(
-        service_name='secretsmanager',
-        region_name=region_name
-    )
+        # Create a Secrets Manager client
+        session = boto3.session.Session()
+        client = session.client(
+            service_name='secretsmanager',
+            region_name=region_name
+        )
 
-    try:
-        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
-        return json.loads(get_secret_value_response['SecretString'])
-    except ClientError as e:
-        raise e
+        try:
+            get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+            return json.loads(get_secret_value_response['SecretString'])
+        except ClientError as e:
+            raise e
+    elif ENV == "dev":
+        secret = configparser.ConfigParser()
+        secret.read(LOCAL_CONFIG)
+        return secret["SECRET"]
+
+def get_config(ENV, SECRET):
+    BUCKET = SECRET["bucket"]
+    CONFIG_FILE = SECRET["config_file"]
+
+    config = configparser.ConfigParser()
+    if ENV == "aws":
+        config.read_string(get_file_s3(bucket=BUCKET, object_key=CONFIG_FILE))
+    elif ENV == "dev":
+        config.read(CONFIG_FILE)
+
+    return config
 
 
 def get_file_s3(bucket, object_key):
@@ -64,10 +84,12 @@ def save_file(bucket, file_name, data):
 
 
 def write_to_json(file, data):
+    import os
     if not file or not data:
         print("No Params (file:str, data:Dict)")
         return False
     try:
+        os.makedirs(os.path.dirname(file), exist_ok=True)
         with open(file, "w") as f:
             f.write(json.dumps(data))
         return True
