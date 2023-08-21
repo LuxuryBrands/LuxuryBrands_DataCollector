@@ -39,7 +39,7 @@ jobs:
       - name: create zip
         run: |
           cd package
-          zip -r ../lambda_hashtags.zip .
+          zip -r ../lambda_accounts.zip .
           cd ../source
           zip ../lambda_accounts.zip utils.py
           yes | cp -r ../lambda_accounts.zip ../lambda_hashtags.zip
@@ -59,4 +59,4 @@ jobs:
       - name: upload s3
         run: |
            aws s3 cp lambda_accounts.zip s3://de-2-1-s3/test/lambda_accounts.zip
-           aws s3 cp lambda_hashtags.zip s3://de-2-1-s3/test/lambda_accounts.zip
+           aws s3 cp lambda_hashtags.zip s3://de-2-1-s3/test/lambda_hashtags.zip
