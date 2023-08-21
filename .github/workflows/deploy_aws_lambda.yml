@@ -54,14 +54,6 @@ jobs:
           zip lambda_hashtags.zip source/utils.py
           yes | cp -r source/lambda_hashtags.py lambda_function.py
           zip lambda_hashtags.zip lambda_function.py
-  upload:
-    name: upload the .zip to s3
-    needs: build
-    runs-on: ubuntu-latest
-#    environment: production
-
-    steps:
-      - uses: actions/checkout@v3
       - name: crediential aws
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -72,6 +64,24 @@ jobs:
       - name: upload s3
         run: |
            aws s3 cp lambda_hashtags.zip s3://de-2-1-s3/test/file.zip
+#  upload:
+#    name: upload the .zip to s3
+#    needs: build
+#    runs-on: ubuntu-latest
+##    environment: production
+#
+#    steps:
+#      - uses: actions/checkout@v3
+#      - name: crediential aws
+#        uses: aws-actions/configure-aws-credentials@v1
+#        with:
+#          aws-region: us-west-2
+#          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+#          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#
+#      - name: upload s3
+#        run: |
+#           aws s3 cp lambda_hashtags.zip s3://de-2-1-s3/test/file.zip
           
 
 #  deploy:
