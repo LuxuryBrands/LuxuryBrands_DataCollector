@@ -15,10 +15,6 @@ on:
 permissions:
   contents: read
 
-env:
-  REGION: us-west-2
-  ACCOUNTS_FUNCTION_NAME: DE-2-1-extract-accounts
-  HASHTAGS_FUNCTION_NAME: DE-2-1-extract-hashtags
 
 jobs:
   package_check:
@@ -43,48 +39,16 @@ jobs:
       - uses: actions/checkout@v3
       - name: check file exists
         run: |
-          files=$(find / -type f -name "required_files.txt")
+          files=$(cat "required_files.txt")
           
           for file in $files; do
-            echo "Processing file: $file"
-            if [ -f $file_name ]; then
-              echo "File exists: $file_name"
+            if [ -f ${file//[$'\r']} ]; then
+              echo "File exists: $file"
             else
-              echo "File does not exist: $file_name"
+              echo "File does not exist: $file"
               exit 1
             fi
           done
-#          file_name="/configure.ini"
-#          if [ -f $file_name ]; then
-#            echo "File exists: $file_name"
-#          else
-#            echo "File does not exist: $file_name"
-#            exit 1
-#          fi
-#
-#          file_name="/source/utils.py"
-#          if [ -f $file_name ]; then
-#            echo "File exists: $file_name"
-#          else
-#            echo "File does not exist: $file_name"
-#            exit 1
-#          fi
-#
-#          file_name="/source/lambda_accounts.py"
-#          if [ -f $file_name ]; then
-#            echo "File exists: $file_name"
-#          else
-#            echo "File does not exist: $file_name"
-#            exit 1
-#          fi
-#
-#          file_name="/source/lambda_hashtags.py"
-#          if [ -f $file_name ]; then
-#            echo "File exists: $file_name"
-#          else
-#            echo "File does not exist: $file_name"
-#            exit 1
-#          fi
 
   aws_credential_check:
     runs-on: ubuntu-latest
