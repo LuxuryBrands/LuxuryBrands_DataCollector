@@ -123,7 +123,7 @@ def lambda_handler(event, context):
     for i, account in enumerate(accounts):
         print(f"API request processing.. ACCOUNT:[{account}].. ({i+1}/{len(accounts)})")
         try:
-            data = get_account_media(account)
+            data = get_account_media(account, config=config, SECRET=secret)
             if data:
                 # profile_data exist
                 pass
@@ -134,7 +134,7 @@ def lambda_handler(event, context):
         except Exception as e:
             print(e, "\n")
         else:
-            profile, media = fill_field_profile_media(account, data, err_count=ERR_COUNT)
+            profile, media = fill_field_profile_media(account, data, config=config, err_count=ERR_COUNT)
             profile_results.append(profile)
             media_results.extend(media)
             print()
