@@ -85,7 +85,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      - name: update function code lambda
+      - name: update function code lambda from s3
         run: |
           aws lambda update-function-code \
             --function-name $ACCOUNTS_FUNCTION_NAME \
