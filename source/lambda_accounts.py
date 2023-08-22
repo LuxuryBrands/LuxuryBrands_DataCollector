@@ -21,7 +21,8 @@ def fill_field_profile_media(
 ) -> Tuple[Dict, List]:
 """
 
-ENV = "aws"
+# local | aws_lambda
+ENV = "aws_lambda"
 
 
 def get_account_media(user_name, config, SECRET, page_count=1):
@@ -89,8 +90,8 @@ def fill_field_profile_media(account, data, config, err_count):
 
 def lambda_handler(event, context):
     # GET SECRET/CONFIG
-    secret = utils.get_secret(ENV)
-    config = utils.get_config(ENV, secret)
+    secret = utils.get_secret(env=ENV)
+    config = utils.get_config(env=ENV, SECRET=secret)
 
     if not config or not secret:
         raise AssertionError(
@@ -100,8 +101,8 @@ def lambda_handler(event, context):
 
     # SET VARIABLES
     BUCKET = secret["bucket"]
-    WRITE_LOCATION_PROFILES = config[ENV]["profiles_location"]
-    WRITE_LOCATION_MEDIA = config[ENV]["media_location"]
+    WRITE_LOCATION_PROFILES = config["common"]["profiles_location"]
+    WRITE_LOCATION_MEDIA = config["common"]["media_location"]
     YMD = config["common"]["ymd"]
     DATETIME = config["common"]["datetime"]
 
@@ -189,5 +190,5 @@ def lambda_handler(event, context):
         }
 
 
-if ENV == "dev":
+if __name__ == "__main__":
     lambda_handler({}, {})

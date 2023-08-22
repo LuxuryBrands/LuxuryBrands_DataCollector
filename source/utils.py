@@ -6,14 +6,13 @@ import configparser
 import boto3
 from botocore.exceptions import ClientError
 
-
 LOCAL_SECRET = "../secret/dev_secret.ini"
 
 """
 [prod only] (aws)
 def clearing_lambda_tmp() -> None:
-def get_secret(ENV: str) -> obj:
-def get_config(ENV: str, SECRET: obj) -> obj:
+def get_secret(env: str) -> obj:
+def get_config(env: str, SECRET: obj) -> obj:
 def get_file_s3(bucket: str, object_key: str) -> obj:
 def upload_file_s3(bucket: str, file_name: str, file: Dict) -> bool:
 
@@ -35,8 +34,13 @@ def clearing_lambda_tmp() -> None:
         return True
     return False
 
-def get_secret(ENV):
-    if ENV == "aws":
+def get_secret(env):
+    # GET SECRET k-v
+    if env == "local":
+        secret = configparser.ConfigParser()
+        secret.read(LOCAL_SECRET)
+        return secret["SECRET"]
+    elif env == "aws_lambda":
         secret_name = "DE-2-1-SECRET"
         region_name = "us-west-2"
 
@@ -52,21 +56,17 @@ def get_secret(ENV):
             return json.loads(get_secret_value_response['SecretString'])
         except ClientError as e:
             raise e
-    elif ENV == "dev":
-        secret = configparser.ConfigParser()
-        secret.read(LOCAL_SECRET)
-        return secret["SECRET"]
 
-def get_config(ENV, SECRET):
+def get_config(env, SECRET):
     BUCKET = SECRET["bucket"]
     CONFIG_FILE = SECRET["config_file"]
 
     config = configparser.ConfigParser()
-    if ENV == "aws":
+    if env == "local":
+        config.read(CONFIG_FILE)
+    elif env == "aws_lambda":
         # config.read_string(get_file_s3(bucket=BUCKET, object_key=CONFIG_FILE))
         # lambda cache issue -> s3 XXXXX
-        config.read(CONFIG_FILE)
-    elif ENV == "dev":
         config.read(CONFIG_FILE)
 
     return config
@@ -90,7 +90,7 @@ def upload_file_s3(bucket, file_name, data):
 def save_file(bucket, file_name, data):
     print(f"saving_file.. {bucket}/{file_name}")
     if bucket == "local_env":
-        return write_to_json(file_name, data)
+        return write_to_json("/"+file_name, data)
     else:
         return upload_file_s3(bucket, file_name, data)
 
