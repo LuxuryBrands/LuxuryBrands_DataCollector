@@ -7,6 +7,7 @@ https://developers.facebook.com/docs/instagram-api
 
 ### local test need
 - `../secret/dev_secret.ini`
+  
   ```
   [SECRET]
   ig_user_id = {123123}
@@ -15,11 +16,14 @@ https://developers.facebook.com/docs/instagram-api
   config_file = configure.ini
   ```
 
+- - -
+
 ## collect data
 - 프로필 기본 정보
 - 프로필 미디어
 - 해시태그 검색 미디어
-  
+
+- - -
 
 - ### 프로필 기본 정보 - 1시간마다   
   `BUCKET` / `raw/brand_{ymd}` / `brand_{datetime}.json`
