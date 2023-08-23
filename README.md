@@ -5,36 +5,81 @@ instagram graph api docs
 https://developers.facebook.com/docs/instagram-api
 ```
 
+### local test need
+- `../secret/dev_secret.ini`
+  ```
+  [SECRET]
+  ig_user_id = {123123}
+  access_token = {aBcDE}
+  bucket = local_env
+  config_file = configure.ini
+  ```
 
-- 프로필데이터
-  - `luxury_profiles_{"%y%m%d_%H%M_%S"}.json`
-  - Fields
-    - user_id : 
-    - user_name : 
-    - name : 
-    - profile_picture_url : 
-    - followers_count : 
-    - media_count : 
+## collect data
+- 프로필 기본 정보
+- 프로필 미디어
+- 해시태그 검색 미디어
   
-- 프로필_미디어 최신 25건
-  - `luxury_media_{"%y%m%d_%H%M_%S"}.json`
-  - Fields
-    - media_id : 
-    - timestamp : 
-    - caption : 
-    - media_type :
-    - media_product_type :
-    - media_url : 
-    - permalink : 
-    - like_count : 
-    - comments_count : 
 
-- 해시태그 미디어 최신 25건
-  - `hashtag_media_{"%y%m%d_%H%M_%S"}.json`
-  - Fields
-    - media_id : 
-    - media_type : 
-    - caption : 
-    - comments_count : 
-    - like_count : 
-    - timestamp : 
+- ### 프로필 기본 정보 - 1시간마다   
+  `BUCKET` / `raw/brand_{ymd}` / `brand_{datetime}.json`
+    ```
+    [
+        {
+            "user_id":             str  ('17841400681603877')
+            "user_name":           str  ('hermes')
+            "name":                str  ('Hermès')
+            "profile_picture_url": url  ('https://scontent-*.*.*.net/v/*')
+            "followers_count":     int
+            "media_count":         int
+        },
+        {
+            "fields": ...
+        },
+        {}, {}, {}, ...
+    ]
+    ```
+  
+- ### 프로필 미디어 최신 25건 - 1시간마다   
+  `BUCKET` / `raw/media_{ymd}` / `media_{datetime}.json`
+    ```
+    [
+        {
+            "user_id":            str        ('17841400681603877')
+            "media_id":           str        ('17872654964957867')
+            "timestamp":          timestamp  ('2023-08-16T09:30:00+0000')
+            "caption":            str        ('hello\ninsta')
+            "media_type":         str        ('IMAGE'|'VIDEO'|'CAROUSEL_ALBUM')
+            "media_product_type": str        ('AD'|'FEED'|'STORY'|'REELS')
+            "media_url":          url        ('https://*.*instagram.com/*')
+            "permalink":          url        ('https://www.instagram.com/(type)/*/')
+            "like_count":         int
+            "comments_count":     int
+        },
+        {
+            "fields": ...
+        },
+        {}, {}, {}, ...
+    ]
+    ```
+
+
+- ### 해시태그 검색 미디어 최신 25건   
+  `BUCKET` / `raw/media_hashtag_{ymd}` / `media_hashtag_{datetime}.json`
+    ```
+    [
+        {
+            "user_id":        str        ('17841401770520874')
+            "media_id":       str        ('18006172678923441')
+            "timestamp":      timestamp  ('2023-08-16T09:30:00+0000')
+            "caption":        str        ('hello\ninsta')
+            "media_type":     str        ('IMAGE'|'VIDEO'|'CAROUSEL_ALBUM')
+            "like_count":     int
+            "comments_count": int
+        },
+        {
+            "fields": ...
+        },
+        {}, {}, {}, ...
+    ]
+    ```
