@@ -3,13 +3,13 @@
 # - required files exist
 # - aws cli credential
 
-name: Build and Deploy Check
+name: Pre-Deploy Check
 
 on:
   push:
     branches: [ "develop" ]
   pull_request:
-    branches: [ "develop" ]
+    branches: [ "main", "develop" ]
 
 
 permissions:
