@@ -10,6 +10,11 @@ from botocore.exceptions import ClientError
 
 LOCAL_SECRET = "../secret/dev_secret.ini"
 
+# lambda 로거와 연결
+logger = logging.getLogger()
+# INFO이상의 로그만 기록.
+logger.setLevel(logging.INFO)
+
 """
 [prod only] (aws)
 def get_secret(env: str) -> obj:
@@ -144,7 +149,7 @@ def check_fields(topic, fields, record, err_count):
     if "id" not in record.keys():
         err_text = f"{topic}-[required field does not exist] id"
         err_count[err_text] = err_count.get(err_text, 0) + 1
-        logging.error(f"{topic}-[required field does not exist] id")
+        logger.error(f"{topic}-[required field does not exist] id")
         return {}
 
     # 필수필드 (id) 값 형식 체크
@@ -153,7 +158,7 @@ def check_fields(topic, fields, record, err_count):
         # id 형식 에러
         err_text = f"{topic}-[id format error] id is {record['id']}"
         err_count[err_text] = err_count.get(err_text, 0) + 1
-        logging.error(f"{topic}-[id format error]\t{record['id']}\tid is {record['id']}")
+        logger.error(f"{topic}-[id format error]\t{record['id']}\tid is {record['id']}")
         return {}
 
     # DEST FILE= {field}:data[{res_field}] .. type:(res_type)
@@ -165,7 +170,7 @@ def check_fields(topic, fields, record, err_count):
             # not found field
             err_text = f"{topic}-[not found field] {field}({res_field})"
             err_count[err_text] = err_count.get(err_text, 0) + 1
-            logging.warning(f"{topic}-[not found field]\t{record['id']}\t{field}({res_field})")
+            logger.warning(f"{topic}-[not found field]\t{record['id']}\t{field}({res_field})")
             ret[field] = default_value[res_type]
             continue
 
@@ -177,7 +182,7 @@ def check_fields(topic, fields, record, err_count):
             # 리턴 타입 에러
             err_text = f"{topic}-[data type error] {field} is {var}"
             err_count[err_text] = err_count.get(err_text, 0) + 1
-            logging.warning(f"{topic}-[data type error]\t{record['id']}\t{field}({res_type}) is {var}")
+            logger.warning(f"{topic}-[data type error]\t{record['id']}\t{field}({res_type}) is {var}")
             flag = False
 
         else:
@@ -187,7 +192,7 @@ def check_fields(topic, fields, record, err_count):
                     # url 형식 에러
                     err_text = f"{topic}-[url format error] {field} is {var}"
                     err_count[err_text] = err_count.get(err_text, 0) + 1
-                    logging.warning(f"{topic}-[url format error]\t{record['id']}\t{field} is {var}")
+                    logger.warning(f"{topic}-[url format error]\t{record['id']}\t{field} is {var}")
                     flag = False
 
             elif res_type == "timestamp":
@@ -203,21 +208,21 @@ def check_fields(topic, fields, record, err_count):
                     # timestamp 형식 에러
                     err_text = f"{topic}-[timestamp format error] {field} is {var}"
                     err_count[err_text] = err_count.get(err_text, 0) + 1
-                    logging.warning(f"{topic}-[timestamp format error]\t{record['id']}\t{field} is {var}")
+                    logger.warning(f"{topic}-[timestamp format error]\t{record['id']}\t{field} is {var}")
                     flag = False
 
             elif res_field == "media_product_type":
                 if var not in ["AD", "FEED", "STORY", "REELS"]:
                     err_text = f"{topic}-[media_product_type domain not allowed] {field} is {var}"
                     err_count[err_text] = err_count.get(err_text, 0) + 1
-                    logging.warning(f"{topic}-[media_product_type domain not allowed]\t{record['id']}\t{field} is {var}")
+                    logger.warning(f"{topic}-[media_product_type domain not allowed]\t{record['id']}\t{field} is {var}")
                     flag = False
 
             elif res_field == "media_type":
                 if var not in ["IMAGE", "VIDEO", "CAROUSEL_ALBUM"]:
                     err_text = f"{topic}-[media_type domain not allowed] {field} is {var}"
                     err_count[err_text] = err_count.get(err_text, 0) + 1
-                    logging.warning(f"{topic}-[media_type domain not allowed]\t{record['id']}\t{field} is {var}")
+                    logger.warning(f"{topic}-[media_type domain not allowed]\t{record['id']}\t{field} is {var}")
                     flag = False
 
 
