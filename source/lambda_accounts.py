@@ -6,7 +6,7 @@ from datetime import datetime
 from source import utils
 
 # lambda 로거와 연결
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 # INFO이상의 로그만 기록.
 logger.setLevel(logging.INFO)
 
