@@ -1,8 +1,9 @@
 import requests
-from datetime import datetime
 import json
-import utils
+import logging
+from datetime import datetime
 
+from source import utils
 
 """
 def get_hashtag_id(
@@ -49,8 +50,8 @@ def get_hashtag_id(tag_name, config, SECRET):
     if res.status_code == 200:
         return res.json()["data"][0]["id"]
 
-    print("get hashtag_id FAIL", res.status_code)
-    print(res.text)
+    logging.error("get hashtag_id FAIL", res.status_code)
+    logging.error(res.text)
     raise AssertionError(res.json()["error"]["message"])
 
 
@@ -73,17 +74,17 @@ def get_hashtag_search(hashtag_id, config, SECRET, limit=25, page_count=1):
 
     # print(f"request url : {end_point}")
     start_request = datetime.now()
-    print(f"request time: {start_request.strftime('%y%m%d_%H%M_%S.%f')}", end="")
+    logging.info(f"request time: {start_request.strftime('%y%m%d_%H%M_%S.%f')}", end="")
     res = requests.get(end_point, params=params)
     duration = datetime.now()-start_request
-    print(f"\tDuration: {duration.total_seconds()}")
+    logging.info(f"\tDuration: {duration.total_seconds()}")
 
     if res.status_code == 200:
-        print("REQUESTS SUCCESS")
+        logging.info("REQUESTS SUCCESS")
         return res.json()["data"]
 
-    print("REQUESTS FAIL", res.status_code)
-    print(res.text)
+    logging.error("REQUESTS FAIL", res.status_code)
+    logging.error(res.text)
     raise AssertionError(res.json()["error"]["message"])
 
 
@@ -127,23 +128,23 @@ def lambda_handler(event, context):
     hashtag_results = []
 
     start_time = datetime.now()
-    print(f"start: {datetime.now().strftime('%y%m%d_%H%M_%S.%f')}\n")
+    logging.info(f"start: {datetime.now().strftime('%y%m%d_%H%M_%S.%f')}\n")
     # START REQUESTS
     for i, hashtag in enumerate(hashtags):
-        print(f"API request processing.. TAG[{hashtag}]({i+1}/{len(hashtags)}) : ", end="")
+        logging.info(f"API request processing.. TAG[{hashtag}]({i+1}/{len(hashtags)}) : ", end="")
         try:
             hashtag_id = get_hashtag_id(hashtag, config=config, SECRET=secret)
-            print(hashtag_id)
+            logging.info(hashtag_id)
             data = get_hashtag_search(hashtag_id, config=config, SECRET=secret)
             if data:
                 # hashtag_data exist
                 pass
         except Exception as e:
-            print(e, "\n")
+            logging.warning(e, "\n")
         else:
             hashtag_data = fill_field_hashtag(hashtag, data, config=config, err_count=ERR_COUNT)
             hashtag_results.extend(hashtag_data)
-            print()
+            #
     # END REQUESTS
 
     # FILE SAVING
@@ -160,9 +161,9 @@ def lambda_handler(event, context):
             f = False
         file_flag &= f
         if f:
-            print(f"WRITE TO [{BUCKET}/{file_name}] COMPLETE.")
+            logging.info(f"WRITE TO [{BUCKET}/{file_name}] COMPLETE.")
         else:
-            print("FAIL UPLOAD.")
+            logging.error("FAIL UPLOAD.")
     # write_log somewhere
 
     # PRINT ERROR LOG
@@ -171,7 +172,7 @@ def lambda_handler(event, context):
         err_log += f"{k:<45}{v:>5}\n"
     err_log += "="*70
 
-    print(err_log)
+    logging.info(err_log)
 
     # END FUNCTION
     if file_flag:

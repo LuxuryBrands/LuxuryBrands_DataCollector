@@ -1,10 +1,9 @@
 import requests
-import configparser
+import json
+import logging
 from datetime import datetime
 
-import json
-import utils
-
+from source import utils
 
 """
 def get_account_media(
@@ -27,7 +26,7 @@ ENV = "aws_lambda"
 
 def get_account_media(user_name, config, SECRET, page_count=1):
     if not user_name:
-        print("user_name is empty!")
+        logging.error("user_name is empty!")
         return None
 
     end_point = config["API"]["end_point"]
@@ -51,19 +50,19 @@ def get_account_media(user_name, config, SECRET, page_count=1):
 
     # print(f"request url : {end_point}")
     start_request = datetime.now()
-    print(f"request time: {start_request.strftime('%y%m%d_%H%M_%S.%f')}", end="")
+    logging.info(f"request time: {start_request.strftime('%y%m%d_%H%M_%S.%f')}", end="")
     res = requests.get(end_point, params=params)
     duration = datetime.now()-start_request
-    print(f"\tDuration: {duration.total_seconds()}")
+    logging.info(f"\tDuration: {duration.total_seconds()}")
 
     if res.status_code == 200:
-        print("REQUESTS SUCCESS")
+        logging.info("REQUESTS SUCCESS")
         # print(res.text)
         data = res.json().get("business_discovery",{})
         return data
 
-    print("REQUESTS FAIL", res.status_code)
-    print(res.text)
+    logging.error("REQUESTS FAIL", res.status_code)
+    logging.error(res.text)
 
     if res.status_code == 403 and res.json()["error"]["code"]:
         # (#4) Application request limit reached
@@ -119,10 +118,10 @@ def lambda_handler(event, context):
     media_results = []
 
     start_time = datetime.now()
-    print(f"start: {datetime.now().strftime('%y%m%d_%H%M_%S.%f')}\n")
+    logging.info(f"start: {datetime.now().strftime('%y%m%d_%H%M_%S.%f')}\n")
     # START REQUESTS
     for i, account in enumerate(accounts):
-        print(f"API request processing.. ACCOUNT:[{account}].. ({i+1}/{len(accounts)})")
+        logging.info(f"API request processing.. ACCOUNT:[{account}].. ({i+1}/{len(accounts)})")
         try:
             data = get_account_media(account, config=config, SECRET=secret)
             if data:
@@ -133,12 +132,12 @@ def lambda_handler(event, context):
                 pass
 
         except Exception as e:
-            print(e, "\n")
+            logging.warning(e, "\n")
         else:
             profile, media = fill_field_profile_media(account, data, config=config, err_count=ERR_COUNT)
             profile_results.append(profile)
             media_results.extend(media)
-            print()
+            #
     # END REQUESTS
 
     # FILE SAVING
@@ -157,9 +156,9 @@ def lambda_handler(event, context):
             f = False
         file_flag &= f
         if f:
-            print(f"WRITE TO [{BUCKET}/{file_name}] COMPLETE.")
+            logging.info(f"WRITE TO [{BUCKET}/{file_name}] COMPLETE.")
         else:
-            print("FAIL UPLOAD.")
+            logging.error("FAIL UPLOAD.")
     # write_log somewhere
 
     # PRINT ERROR LOG
@@ -168,7 +167,7 @@ def lambda_handler(event, context):
         err_log += f"{k:<45}{v:>5}\n"
     err_log += "="*70
 
-    print(err_log)
+    logging.info(err_log)
 
     # END FUNCTION
     if file_flag:
