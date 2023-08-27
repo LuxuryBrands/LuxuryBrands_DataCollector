@@ -4,7 +4,7 @@ import requests
 from datetime import datetime, timedelta
 import os
 
-from source.config_update \
+from source.api_utils \
     import get_fb_user_id, get_fb_page_id, get_ig_user_id
 
 
