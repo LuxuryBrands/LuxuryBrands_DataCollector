@@ -9,8 +9,8 @@ CONFIG_FILE = "../configure.ini"
 
 """
 사용 X 파일
+유닛테스트 시 검증용으로 사용
 """
-
 
 """
 access_token 기반으로
@@ -25,19 +25,12 @@ def save_config(config):
         print("saved..")
 
 
-def check_access_token():
+def check_access_token(end_point, access_token):
     """
+    only use update for config.ini
     :return: YYYY-MM-DD hh:mm:ss
             # 2023-10-06 18:40:50
     """
-    print(f"{sys._getframe().f_code.co_name} >> ", end="")
-    config = configparser.ConfigParser()
-    config.read("../secret/configure.ini")
-
-    end_point = config["API"]["end_point"]
-    end_point = end_point.format(VERSION=config["API"]["version"])
-    access_token = config['SECRET']['access_token']
-
     params = {
         "input_token": access_token,
         "access_token": access_token,
@@ -51,59 +44,31 @@ def check_access_token():
     save_config(config)
 
 
-def get_fb_user_id():
-    print(f"{sys._getframe().f_code.co_name} >> ", end="")
-    config = configparser.ConfigParser()
-    config.read(CONFIG_FILE)
-
-    end_point = config["API"]["end_point"]
-    end_point = end_point.format(VERSION=config["API"]["version"]) + "/me"
-    access_token = config['SECRET']['access_token']
-
-    res = requests.get(end_point, params={"access_token":access_token})
+def get_fb_user_id(end_point, access_token):
+    res = requests.get(end_point + "/me", params={"access_token":access_token})
     if res.status_code==200:
-        config["SECRET"]["fb_user_id"] = res.json()["id"]
-        save_config(config)
+        return res.json()["id"]
     else:
-        print("NOT FOUND")
+        return None
 
-def get_fb_page_id():
-    print(f"{sys._getframe().f_code.co_name} >> ", end="")
-    config = configparser.ConfigParser()
-    config.read(CONFIG_FILE)
-
-    end_point = config["API"]["end_point"]
-    end_point = end_point.format(VERSION=config["API"]["version"]) + "/me/accounts"
-    access_token = config['SECRET']['access_token']
-
-    res = requests.get(end_point, params={"access_token":access_token})
+def get_fb_page_id(end_point, access_token):
+    res = requests.get(end_point + "/me/accounts", params={"access_token":access_token})
     if res.status_code==200:
-        config["SECRET"]["fb_page_id"] = res.json()["data"][0]["id"]
-        save_config(config)
+        return res.json()["data"][0]["id"]
     else:
-        print("NOT FOUND")
+        return None
 
-def get_ig_user_id():
-    print(f"{sys._getframe().f_code.co_name} >> ", end="")
-    config = configparser.ConfigParser()
-    config.read(CONFIG_FILE)
-
-    end_point = config["API"]["end_point"]
-    end_point = end_point.format(VERSION=config["API"]["version"]) \
-                + "/" + config["SECRET"]["fb_page_id"]
-    access_token = config['SECRET']['access_token']
-
-    res = requests.get(end_point,
+def get_ig_user_id(end_point, fb_page_id ,access_token):
+    res = requests.get(end_point + f"/{fb_page_id}",
                        params={
                            "fields": "instagram_business_account",
                            "access_token":access_token
                        })
 
     if res.status_code==200:
-        config["SECRET"]["ig_user_id"] = res.json()["instagram_business_account"]["id"]
-        save_config(config)
+        return res.json()["instagram_business_account"]["id"]
     else:
-        print("NOT FOUND")
+        return None
 
 
 # def token_exchange(token):
@@ -131,7 +96,21 @@ if __name__=="__main__":
     [SECRET]ig_user_id
     세가지 내용과 [ACCESS_TOKEN] 정보 업데이트.
     """
-    check_access_token()
-    get_fb_user_id()
-    get_fb_page_id()
-    get_ig_user_id()
+    config = configparser.ConfigParser()
+    config.read(CONFIG_FILE)
+    end_point = config["API"]["end_point"]
+    end_point = end_point.format(VERSION=config["API"]["version"])
+    access_token = config["SECRET"]["access_token"]
+
+    check_access_token(end_point=end_point, access_token=access_token)
+
+    fb_user_id = get_fb_user_id(end_point=end_point, access_token=access_token)
+    config["SECRET"]["fb_user_id"] = fb_user_id
+
+    fb_page_id = get_fb_page_id(end_point=end_point, access_token=access_token)
+    config["SECRET"]["fb_page_id"] = fb_page_id
+
+    ig_user_id = get_ig_user_id(end_point=end_point, fb_page_id=fb_page_id, access_token=access_token)
+    config["SECRET"]["ig_user_id"] = ig_user_id
+
+    save_config()
