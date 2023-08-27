@@ -5,6 +5,11 @@ from datetime import datetime
 
 from source import utils
 
+# lambda 로거와 연결
+logger = logging.getLogger()
+# INFO이상의 로그만 기록.
+logger.setLevel(logging.INFO)
+
 """
 def get_account_media(
     user_name: str,
@@ -26,7 +31,7 @@ ENV = "aws_lambda"
 
 def get_account_media(user_name, config, SECRET, page_count=1):
     if not user_name:
-        logging.error("user_name is empty!")
+        logger.error("user_name is empty!")
         return None
 
     end_point = config["API"]["end_point"]
@@ -50,19 +55,19 @@ def get_account_media(user_name, config, SECRET, page_count=1):
 
     # print(f"request url : {end_point}")
     start_request = datetime.now()
-    logging.info(f"request time: {start_request.strftime('%y%m%d_%H%M_%S.%f')}", end="")
+    logger.info(f"request time: {start_request.strftime('%y%m%d_%H%M_%S.%f')}", end="")
     res = requests.get(end_point, params=params)
     duration = datetime.now()-start_request
-    logging.info(f"\tDuration: {duration.total_seconds()}")
+    logger.info(f"\tDuration: {duration.total_seconds()}")
 
     if res.status_code == 200:
-        logging.info("REQUESTS SUCCESS")
+        logger.info("REQUESTS SUCCESS")
         # print(res.text)
         data = res.json().get("business_discovery",{})
         return data
 
-    logging.error("REQUESTS FAIL", res.status_code)
-    logging.error(res.text)
+    logger.error("REQUESTS FAIL", res.status_code)
+    logger.error(res.text)
 
     if res.status_code == 403 and res.json()["error"]["code"]:
         # (#4) Application request limit reached
@@ -118,10 +123,10 @@ def lambda_handler(event, context):
     media_results = []
 
     start_time = datetime.now()
-    logging.info(f"start: {datetime.now().strftime('%y%m%d_%H%M_%S.%f')}\n")
+    logger.info(f"start: {datetime.now().strftime('%y%m%d_%H%M_%S.%f')}\n")
     # START REQUESTS
     for i, account in enumerate(accounts):
-        logging.info(f"API request processing.. ACCOUNT:[{account}].. ({i+1}/{len(accounts)})")
+        logger.info(f"API request processing.. ACCOUNT:[{account}].. ({i+1}/{len(accounts)})")
         try:
             data = get_account_media(account, config=config, SECRET=secret)
             if data:
@@ -132,7 +137,7 @@ def lambda_handler(event, context):
                 pass
 
         except Exception as e:
-            logging.warning(e, "\n")
+            logger.warning(e, "\n")
         else:
             profile, media = fill_field_profile_media(account, data, config=config, err_count=ERR_COUNT)
             profile_results.append(profile)
@@ -156,9 +161,9 @@ def lambda_handler(event, context):
             f = False
         file_flag &= f
         if f:
-            logging.info(f"WRITE TO [{BUCKET}/{file_name}] COMPLETE.")
+            logger.info(f"WRITE TO [{BUCKET}/{file_name}] COMPLETE.")
         else:
-            logging.error("FAIL UPLOAD.")
+            logger.error("FAIL UPLOAD.")
     # write_log somewhere
 
     # PRINT ERROR LOG
@@ -167,7 +172,7 @@ def lambda_handler(event, context):
         err_log += f"{k:<45}{v:>5}\n"
     err_log += "="*70
 
-    logging.info(err_log)
+    logger.info(err_log)
 
     # END FUNCTION
     if file_flag:
