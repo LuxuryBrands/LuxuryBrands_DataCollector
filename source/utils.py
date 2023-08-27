@@ -1,6 +1,8 @@
 import json
 import re
 import configparser
+from datetime import datetime
+import logging
 
 # aws
 import boto3
@@ -10,7 +12,6 @@ LOCAL_SECRET = "../secret/dev_secret.ini"
 
 """
 [prod only] (aws)
-def clearing_lambda_tmp() -> None:
 def get_secret(env: str) -> obj:
 def get_config(env: str, SECRET: obj) -> obj:
 def get_file_s3(bucket: str, object_key: str) -> obj:
@@ -25,14 +26,6 @@ def saving_log(file: str, log: str) -> None:
 def check_fields(topic: str, record: Dict) -> Dict:
 """
 
-def clearing_lambda_tmp() -> None:
-    # [Errno 30] Read-only file system: '/tmp'
-    import os
-    tmp_file_path = "/tmp"
-    if os.path.exists(tmp_file_path):
-        os.remove(tmp_file_path)
-        return True
-    return False
 
 def get_secret(env):
     # GET SECRET k-v
@@ -132,6 +125,9 @@ def saving_log(file, log):
 
 def check_fields(topic, fields, record, err_count):
     """
+    에러는 항상 수집필드(fields) 기준으로 발생.
+    record의 데이터 수, 키값 불일치 는 문제 없음.
+    
     fill the crawl field
     :param topic: "luxury_profile" | "luxury_media" | "hashtag_media"
     :param fields: config[topic] (Dict)
@@ -144,33 +140,88 @@ def check_fields(topic, fields, record, err_count):
 
     ret = {}
 
+    # 필수필드 (id) 누락
+    if "id" not in record.keys():
+        err_text = f"{topic}-[required field does not exist] id"
+        err_count[err_text] = err_count.get(err_text, 0) + 1
+        logging.error(f"{topic}-[required field does not exist] id")
+        return {}
+
+    # 필수필드 (id) 값 형식 체크
+    id_pattern = "\d+"
+    if not re.match(id_pattern, record["id"]):
+        # id 형식 에러
+        err_text = f"{topic}-[id format error] id is {record['id']}"
+        err_count[err_text] = err_count.get(err_text, 0) + 1
+        logging.error(f"{topic}-[id format error]\t{record['id']}\tid is {record['id']}")
+        return {}
+
+    # DEST FILE= {field}:data[{res_field}] .. type:(res_type)
     for field, type in fields.items():
         res_field, res_type = type.split()
 
-        var = record.get(res_field, None)
+        # 예상된 필드 유무 체크
+        if res_field not in record.keys():
+            # not found field
+            err_text = f"{topic}-[not found field] {field}({res_field})"
+            err_count[err_text] = err_count.get(err_text, 0) + 1
+            logging.warning(f"{topic}-[not found field]\t{record['id']}\t{field}({res_field})")
+            ret[field] = default_value[res_type]
+            continue
+
+        var = record.get(res_field)
+        flag = True
+
+        # 예상된 데이터 타입 체크
         if not isinstance(var, type_check[res_type]):
             # 리턴 타입 에러
             err_text = f"{topic}-[data type error] {field} is {var}"
             err_count[err_text] = err_count.get(err_text, 0) + 1
-            print(f"{topic}-[data type error]\t{record['id']}\t{field} is {var}")
+            logging.warning(f"{topic}-[data type error]\t{record['id']}\t{field}({res_type}) is {var}")
+            flag = False
 
-        if res_type == "url":
-            url_pattern = "^https?:\\/\\/(?:www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b(?:[-a-zA-Z0-9()@:%_\\+.~#?&\\/=]*)$"
-            if var and not re.match(url_pattern, var):
-                # url 형식 에러
-                err_text = f"{topic}-[url format error] {field} is {var}"
-                err_count[err_text] = err_count.get(err_text, 0) + 1
-                print(f"{topic}-[url format error]\t{record['id']}\t{field}, {var}")
+        else:
+            if res_type == "url":
+                url_pattern = "^https?:\\/\\/(?:www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b(?:[-a-zA-Z0-9()@:%_\\+.~#?&\\/=]*)$"
+                if var and not re.match(url_pattern, var):
+                    # url 형식 에러
+                    err_text = f"{topic}-[url format error] {field} is {var}"
+                    err_count[err_text] = err_count.get(err_text, 0) + 1
+                    logging.warning(f"{topic}-[url format error]\t{record['id']}\t{field} is {var}")
+                    flag = False
 
-        if res_type == "timestamp":
-            timestamp_pattern = "^(19|2[0-9])[0-9]{2}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])T(0[0-9]|1[0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])((\\+|-)[0-1][0-9]{3})?$"
-            if var and not re.match(timestamp_pattern, var):
-                # timestamp 형식 에러
-                err_text = f"{topic}-[timestamp format error] {field} is {var}"
-                err_count[err_text] = err_count.get(err_text, 0) + 1
-                print(f"{topic}-[timestamp format error]\t{record['id']}\t{field}, {var}")
+            elif res_type == "timestamp":
+                # timestamp_pattern = "^(19|2[0-9])[0-9]{2}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])T(0[0-9]|1[0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])((\\+|-)[0-1][0-9]{3})?$"
+                # if var and not re.match(timestamp_pattern, var):
+                #     # timestamp 형식 에러
+                #     err_text = f"{topic}-[timestamp format error] {field} is {var}"
+                #     err_count[err_text] = err_count.get(err_text, 0) + 1
+                #     print(f"{topic}-[timestamp format error]\t{record['id']}\t{field}, {var}")
+                try:
+                    datetime.strptime(var, "%Y-%m-%dT%H:%M:%S%z")
+                except:
+                    # timestamp 형식 에러
+                    err_text = f"{topic}-[timestamp format error] {field} is {var}"
+                    err_count[err_text] = err_count.get(err_text, 0) + 1
+                    logging.warning(f"{topic}-[timestamp format error]\t{record['id']}\t{field} is {var}")
+                    flag = False
 
-        ret[field] = (var if var else default_value[res_type])
+            elif res_field == "media_product_type":
+                if var not in ["AD", "FEED", "STORY", "REELS"]:
+                    err_text = f"{topic}-[media_product_type domain not allowed] {field} is {var}"
+                    err_count[err_text] = err_count.get(err_text, 0) + 1
+                    logging.warning(f"{topic}-[media_product_type domain not allowed]\t{record['id']}\t{field} is {var}")
+                    flag = False
+
+            elif res_field == "media_type":
+                if var not in ["IMAGE", "VIDEO", "CAROUSEL_ALBUM"]:
+                    err_text = f"{topic}-[media_type domain not allowed] {field} is {var}"
+                    err_count[err_text] = err_count.get(err_text, 0) + 1
+                    logging.warning(f"{topic}-[media_type domain not allowed]\t{record['id']}\t{field} is {var}")
+                    flag = False
+
+
+        ret[field] = (var if flag else default_value[res_type])
 
     return ret
 
