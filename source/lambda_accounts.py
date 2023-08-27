@@ -3,7 +3,7 @@ import json
 import logging
 from datetime import datetime
 
-from source import utils
+import utils
 
 # lambda 로거와 연결
 logger = logging.getLogger(__name__)
