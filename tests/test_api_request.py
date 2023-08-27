@@ -1,6 +1,9 @@
 import unittest
 import configparser
 import os
+# 유닛테스트 import 경로 에러 임시방편
+import sys
+sys.path.append("source")
 
 from source.lambda_accounts import get_account_media
 from source.lambda_hashtags import get_hashtag_id, get_hashtag_search
