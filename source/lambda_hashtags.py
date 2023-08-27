@@ -79,7 +79,7 @@ def get_hashtag_search(hashtag_id, config, SECRET, limit=25, page_count=1):
 
     # print(f"request url : {end_point}")
     start_request = datetime.now()
-    logger.info(f"request time: {start_request.strftime('%y%m%d_%H%M_%S.%f')}", end="")
+    logger.info(f"request time: {start_request.strftime('%y%m%d_%H%M_%S.%f')}")
     res = requests.get(end_point, params=params)
     duration = datetime.now()-start_request
     logger.info(f"\tDuration: {duration.total_seconds()}")
@@ -136,7 +136,7 @@ def lambda_handler(event, context):
     logger.info(f"start: {datetime.now().strftime('%y%m%d_%H%M_%S.%f')}\n")
     # START REQUESTS
     for i, hashtag in enumerate(hashtags):
-        logger.info(f"API request processing.. TAG[{hashtag}]({i+1}/{len(hashtags)}) : ", end="")
+        logger.info(f"API request processing.. TAG[{hashtag}].. ({i+1}/{len(hashtags)})")
         try:
             hashtag_id = get_hashtag_id(hashtag, config=config, SECRET=secret)
             logger.info(hashtag_id)

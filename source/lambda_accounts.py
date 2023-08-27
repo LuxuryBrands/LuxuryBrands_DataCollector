@@ -55,7 +55,7 @@ def get_account_media(user_name, config, SECRET, page_count=1):
 
     # print(f"request url : {end_point}")
     start_request = datetime.now()
-    logger.info(f"request time: {start_request.strftime('%y%m%d_%H%M_%S.%f')}", end="")
+    logger.info(f"request time: {start_request.strftime('%y%m%d_%H%M_%S.%f')}")
     res = requests.get(end_point, params=params)
     duration = datetime.now()-start_request
     logger.info(f"\tDuration: {duration.total_seconds()}")
@@ -126,7 +126,7 @@ def lambda_handler(event, context):
     logger.info(f"start: {datetime.now().strftime('%y%m%d_%H%M_%S.%f')}\n")
     # START REQUESTS
     for i, account in enumerate(accounts):
-        logger.info(f"API request processing.. ACCOUNT:[{account}].. ({i+1}/{len(accounts)})")
+        logger.info(f"API request processing.. ACCOUNT[{account}].. ({i+1}/{len(accounts)})")
         try:
             data = get_account_media(account, config=config, SECRET=secret)
             if data:
