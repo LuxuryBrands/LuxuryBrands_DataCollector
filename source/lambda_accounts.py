@@ -71,7 +71,9 @@ def get_account_media(user_name, config, SECRET, page_count=1):
 
     if res.status_code == 403 and res.json()["error"]["code"]:
         # (#4) Application request limit reached
+        logger.error("(#4) Application request limit reached")
         raise AssertionError(res.json()["error"]["message"])
+
     raise AssertionError(res.json()["error"]["message"])
 
 
@@ -129,12 +131,12 @@ def lambda_handler(event, context):
         logger.info(f"API request processing.. ACCOUNT[{account}].. ({i+1}/{len(accounts)})")
         try:
             data = get_account_media(account, config=config, SECRET=secret)
-            if data:
-                # profile_data exist
-                pass
-            if data.get("media", {}).get("data", False):
-                # media_data exist
-                pass
+            if not data:
+                # profile_data not exist
+                raise AssertionError("profile_data not exist")
+            if not data.get("media", {}).get("data", False):
+                # media_data not exist
+                raise AssertionError("media_data not exist")
 
         except Exception as e:
             logger.warning(e, "\n")

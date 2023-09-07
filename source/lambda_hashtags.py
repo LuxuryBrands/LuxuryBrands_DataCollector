@@ -86,10 +86,16 @@ def get_hashtag_search(hashtag_id, config, SECRET, limit=25, page_count=1):
 
     if res.status_code == 200:
         logger.info("REQUESTS SUCCESS")
-        return res.json()["data"]
+        return res.json().get("data")
 
     logger.error("REQUESTS FAIL", res.status_code)
     logger.error(res.text)
+
+    if res.status_code == 403 and res.json()["error"]["code"]:
+        # (#4) Application request limit reached
+        logger.error("(#4) Application request limit reached")
+        raise AssertionError(res.json()["error"]["message"])
+
     raise AssertionError(res.json()["error"]["message"])
 
 
@@ -141,9 +147,10 @@ def lambda_handler(event, context):
             hashtag_id = get_hashtag_id(hashtag, config=config, SECRET=secret)
             logger.info(hashtag_id)
             data = get_hashtag_search(hashtag_id, config=config, SECRET=secret)
-            if data:
-                # hashtag_data exist
-                pass
+            if not data:
+                # hashtag_data not exist
+                raise AssertionError("hashtag_data not exist")
+
         except Exception as e:
             logger.warning(e, "\n")
         else:
