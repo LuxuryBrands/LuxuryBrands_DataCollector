@@ -3,6 +3,7 @@ import re
 import configparser
 from datetime import datetime
 import logging
+from os.path import exists
 
 # aws
 import boto3
@@ -35,6 +36,8 @@ def check_fields(topic: str, record: Dict) -> Dict:
 def get_secret(env):
     # GET SECRET k-v
     if env == "local":
+        if not exists(LOCAL_SECRET):
+            raise AssertionError("need secret for local")
         secret = configparser.ConfigParser()
         secret.read(LOCAL_SECRET)
         return secret["SECRET"]
